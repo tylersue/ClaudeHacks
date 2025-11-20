@@ -1,0 +1,2 @@
+# ClaudeHacks
+Badger Research Assistant

@@ -272,6 +272,7 @@ const MOCK_EXAMPLES = {
 // ========== MAIN COMPONENT ==========
 
 export default function BadgerResearchGraph() {
+  const [selectedMode, setSelectedMode] = useState(null); // null, 'manual', or 'agent'
   const [activeTab, setActiveTab] = useState('uwresearch');
   const [selectedDomain, setSelectedDomain] = useState('biomedicine');
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
@@ -870,57 +871,205 @@ Return ONLY valid JSON (no markdown):
 
   const domain = DOMAINS[selectedDomain];
 
+  // MODE SELECTION SCREEN
+  if (selectedMode === null) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center p-6">
+        {/* Sparkly background effect */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(251,191,36,0.1),transparent_50%)]"></div>
+
+        <div className="max-w-6xl w-full relative z-10">
+          {/* Header */}
+          <div className="text-center mb-12">
+            <div className="flex items-center justify-center gap-4 mb-4">
+              <span className="text-7xl">🦡</span>
+              <h1 className="text-6xl font-bold bg-gradient-to-r from-yellow-400 via-amber-300 to-yellow-500 bg-clip-text text-transparent">
+                Badger Research Graph
+              </h1>
+            </div>
+            <p className="text-2xl text-amber-200 mb-2">AI-Powered Knowledge Discovery</p>
+            <p className="text-lg text-slate-300">UW-Madison Claude Code Hackathon</p>
+          </div>
+
+          {/* Problem Statement */}
+          <div className="bg-slate-800/50 backdrop-blur border border-amber-500/30 rounded-2xl p-6 mb-8 shadow-2xl">
+            <h2 className="text-xl font-bold text-amber-400 mb-3">🎯 Problem We Solve</h2>
+            <p className="text-slate-200 text-lg">
+              UW-Madison researchers waste <strong className="text-amber-300">hours manually reading papers</strong> to understand
+              connections between concepts. Our tool uses <strong className="text-amber-300">Claude AI</strong> to automatically
+              extract knowledge graphs from academic papers.
+            </p>
+          </div>
+
+          {/* Mode Selection */}
+          <h2 className="text-3xl font-bold text-center text-amber-400 mb-8">Choose Your Research Mode</h2>
+
+          <div className="grid md:grid-cols-2 gap-8">
+            {/* MODE 1 */}
+            <button
+              onClick={() => {
+                setSelectedMode('manual');
+                setActiveTab('upload');
+              }}
+              className="group bg-gradient-to-br from-purple-900/80 to-purple-700/80 hover:from-purple-800 hover:to-purple-600 border-2 border-purple-400/50 hover:border-purple-300 rounded-2xl p-8 text-left transition-all duration-300 transform hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/50"
+            >
+              <div className="flex items-start gap-4 mb-4">
+                <span className="text-5xl">📄</span>
+                <div>
+                  <h3 className="text-2xl font-bold text-purple-200 mb-2">MODE 1: Manual Upload</h3>
+                  <p className="text-sm text-purple-300 font-semibold">For Focused Research</p>
+                </div>
+              </div>
+
+              <div className="space-y-3 mb-6">
+                <div className="flex items-start gap-2">
+                  <span className="text-amber-400">1.</span>
+                  <p className="text-slate-200">Upload 1-3 specific PDFs you already have</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-amber-400">2.</span>
+                  <p className="text-slate-200">Claude AI extracts entities & relationships</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-amber-400">3.</span>
+                  <p className="text-slate-200">Instant knowledge graph from YOUR papers</p>
+                </div>
+              </div>
+
+              <div className="bg-purple-950/50 rounded-lg p-3 border border-purple-400/30">
+                <p className="text-xs text-purple-200 italic">
+                  💡 Use Case: "I have 5 key papers for my project and need to understand them deeply"
+                </p>
+              </div>
+
+              <div className="mt-6 text-center">
+                <span className="inline-block bg-purple-500 text-white px-6 py-2 rounded-full font-semibold group-hover:bg-purple-400 transition">
+                  Select Manual Mode →
+                </span>
+              </div>
+            </button>
+
+            {/* MODE 2 */}
+            <button
+              onClick={() => {
+                setSelectedMode('agent');
+                setActiveTab('search');
+              }}
+              className="group bg-gradient-to-br from-blue-900/80 to-cyan-900/80 hover:from-blue-800 hover:to-cyan-800 border-2 border-cyan-400/50 hover:border-cyan-300 rounded-2xl p-8 text-left transition-all duration-300 transform hover:scale-105 hover:shadow-2xl hover:shadow-cyan-500/50"
+            >
+              <div className="flex items-start gap-4 mb-4">
+                <span className="text-5xl">🤖</span>
+                <div>
+                  <h3 className="text-2xl font-bold text-cyan-200 mb-2">MODE 2: Agent Mode</h3>
+                  <p className="text-sm text-cyan-300 font-semibold">Autonomous Discovery</p>
+                </div>
+              </div>
+
+              <div className="space-y-3 mb-6">
+                <div className="flex items-start gap-2">
+                  <span className="text-amber-400">1.</span>
+                  <p className="text-slate-200">Enter research topic (e.g., "BRCA1 cancer")</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-amber-400">2.</span>
+                  <p className="text-slate-200">Agent searches PubMed & finds 5-10 UW papers</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-amber-400">3.</span>
+                  <p className="text-slate-200">Auto-downloads & builds cross-paper graph</p>
+                </div>
+              </div>
+
+              <div className="bg-cyan-950/50 rounded-lg p-3 border border-cyan-400/30">
+                <p className="text-xs text-cyan-200 italic">
+                  ✨ Use Case: "I'm starting new research and need to understand the entire landscape"
+                </p>
+              </div>
+
+              <div className="mt-6 text-center">
+                <span className="inline-block bg-cyan-500 text-white px-6 py-2 rounded-full font-semibold group-hover:bg-cyan-400 transition">
+                  Select Agent Mode →
+                </span>
+              </div>
+            </button>
+          </div>
+
+          {/* Footer */}
+          <div className="text-center mt-12">
+            <button
+              onClick={() => setActiveTab('uwresearch')}
+              className="text-amber-300 hover:text-amber-200 text-sm underline"
+            >
+              Or view example research →
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-900">
       {/* Header */}
-      <header className="bg-gradient-to-r from-red-700 to-red-600 text-white shadow-lg" style={{ backgroundColor: '#C5050C' }}>
+      <header className="bg-gradient-to-r from-slate-800 via-red-900 to-slate-800 text-white shadow-lg border-b-2 border-amber-500/30" style={{ backgroundImage: 'linear-gradient(to right, #1e293b, #7f1d1d, #1e293b)' }}>
         <div className="container mx-auto px-6 py-6">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-4xl font-bold flex items-center gap-3">
-                🦡 Badger Research Graph
+                <span>🦡</span>
+                <span className="bg-gradient-to-r from-yellow-400 via-amber-300 to-yellow-500 bg-clip-text text-transparent">
+                  Badger Research Graph
+                </span>
               </h1>
-              <p className="text-red-100 mt-2 text-lg">
+              <p className="text-amber-200 mt-2 text-lg">
                 AI-Powered Cross-Disciplinary Research • UW-Madison
               </p>
             </div>
-            <button
-              onClick={() => setShowSettings(!showSettings)}
-              className="bg-white text-red-700 px-4 py-2 rounded-lg font-semibold hover:bg-red-50 transition"
-            >
-              ⚙️ Settings
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setSelectedMode(null)}
+                className="bg-slate-700 text-amber-300 px-4 py-2 rounded-lg font-semibold hover:bg-slate-600 transition border border-amber-500/30"
+              >
+                ← Change Mode
+              </button>
+              <button
+                onClick={() => setShowSettings(!showSettings)}
+                className="bg-amber-500 text-slate-900 px-4 py-2 rounded-lg font-semibold hover:bg-amber-400 transition"
+              >
+                ⚙️ Settings
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
       {/* Settings Panel */}
       {showSettings && (
-        <div className="bg-white border-b-2 border-gray-200 shadow-md">
+        <div className="bg-slate-800 border-b-2 border-amber-500/30 shadow-md">
           <div className="container mx-auto px-6 py-4">
-            <h3 className="font-bold text-lg mb-3">API Configuration</h3>
+            <h3 className="font-bold text-lg mb-3 text-amber-400">⚙️ API Configuration</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Claude API Key (Required)</label>
+                <label className="block text-sm font-medium mb-1 text-slate-300">Claude API Key (Required)</label>
                 <input
                   type="password"
                   value={apiKeys.claude}
                   onChange={(e) => saveApiKey('claude', e.target.value)}
                   placeholder="sk-ant-..."
-                  className="w-full border rounded px-3 py-2"
+                  className="w-full bg-slate-700 border border-amber-500/30 rounded px-3 py-2 text-white placeholder-slate-400"
                 />
-                <p className="text-xs text-gray-500 mt-1">Get from console.anthropic.com</p>
+                <p className="text-xs text-slate-400 mt-1">Get from console.anthropic.com</p>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">SerpAPI Key (Optional)</label>
+                <label className="block text-sm font-medium mb-1 text-slate-300">SerpAPI Key (Optional)</label>
                 <input
                   type="password"
                   value={apiKeys.serpapi}
                   onChange={(e) => saveApiKey('serpapi', e.target.value)}
                   placeholder="For Google Scholar search..."
-                  className="w-full border rounded px-3 py-2"
+                  className="w-full bg-slate-700 border border-amber-500/30 rounded px-3 py-2 text-white placeholder-slate-400"
                 />
-                <p className="text-xs text-gray-500 mt-1">Get free key from serpapi.com (for Google Scholar)</p>
+                <p className="text-xs text-slate-400 mt-1">Get free key from serpapi.com (for Google Scholar)</p>
               </div>
             </div>
           </div>
@@ -928,23 +1077,22 @@ Return ONLY valid JSON (no markdown):
       )}
 
       {/* Tabs */}
-      <div className="bg-white border-b-2 border-gray-200">
+      <div className="bg-slate-800 border-b-2 border-amber-500/30">
         <div className="container mx-auto px-6">
           <div className="flex gap-1">
             {[
               { id: 'uwresearch', label: '🦡 UW Research' },
-              { id: 'search', label: '🔍 Search Papers' },
-              { id: 'upload', label: '📄 Upload Papers' }
-            ].map(tab => (
+              { id: 'search', label: '🤖 Agent Search', show: selectedMode === 'agent' || selectedMode === null },
+              { id: 'upload', label: '📄 Manual Upload', show: selectedMode === 'manual' || selectedMode === null }
+            ].filter(tab => tab.show !== false).map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`px-6 py-3 font-semibold transition ${
                   activeTab === tab.id
-                    ? 'bg-red-700 text-white border-b-4 border-red-800'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ? 'bg-gradient-to-b from-amber-500 to-amber-600 text-slate-900 border-b-4 border-amber-700'
+                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-amber-300'
                 }`}
-                style={activeTab === tab.id ? { backgroundColor: '#C5050C' } : {}}
               >
                 {tab.label}
               </button>
@@ -955,41 +1103,16 @@ Return ONLY valid JSON (no markdown):
 
       {/* Main Content */}
       <div className="container mx-auto px-6 py-6">
-        {/* Hackathon Context Banner */}
-        <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg shadow-lg p-6 mb-6 text-white">
-          <h2 className="text-2xl font-bold mb-3">🏆 UW-Madison Claude Code Hackathon Project</h2>
-          <p className="text-purple-100 mb-4">
-            <strong>Problem Solved:</strong> Researchers waste hours manually reading papers to understand connections between concepts.
-            This tool uses Claude AI to automatically extract knowledge graphs from academic papers.
-          </p>
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="bg-white/10 rounded-lg p-4 backdrop-blur">
-              <h3 className="font-bold text-lg mb-2">📄 MODE 1: Manual Upload (Tab 3)</h3>
-              <p className="text-sm text-purple-100">
-                Upload 1-3 specific PDFs you already have → Claude extracts entities & relationships →
-                Instant knowledge graph for your research project
-              </p>
-            </div>
-            <div className="bg-white/10 rounded-lg p-4 backdrop-blur">
-              <h3 className="font-bold text-lg mb-2">🤖 MODE 2: Agent Mode (Tab 2)</h3>
-              <p className="text-sm text-purple-100">
-                Enter research topic → Agent autonomously searches PubMed → Finds 5-10 UW papers →
-                Downloads & analyzes automatically → Large cross-paper knowledge graph
-              </p>
-            </div>
-          </div>
-        </div>
-
         {/* Domain Selector */}
-        <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-          <label className="font-semibold text-gray-700 mr-3">Research Domain:</label>
+        <div className="bg-slate-800 border border-amber-500/30 rounded-lg shadow-lg p-4 mb-6">
+          <label className="font-semibold text-amber-400 mr-3">Research Domain:</label>
           <select
             value={selectedDomain}
             onChange={(e) => setSelectedDomain(e.target.value)}
-            className="border-2 border-gray-300 rounded-lg px-4 py-2 font-medium"
+            className="bg-slate-700 border-2 border-amber-500/50 rounded-lg px-4 py-2 font-medium text-white"
           >
             {Object.entries(DOMAINS).map(([key, domain]) => (
-              <option key={key} value={key}>
+              <option key={key} value={key} className="bg-slate-700">
                 {domain.icon} {domain.name}
               </option>
             ))}
@@ -999,11 +1122,11 @@ Return ONLY valid JSON (no markdown):
         {/* Tab 1: UW Research Examples */}
         {activeTab === 'uwresearch' && (
           <div>
-            <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
-              <p className="font-semibold text-blue-900">
+            <div className="bg-blue-900/50 border-l-4 border-cyan-400 p-4 mb-6">
+              <p className="font-semibold text-cyan-300">
                 📚 Example: {MOCK_EXAMPLES[selectedDomain].title}
               </p>
-              <p className="text-blue-700 text-sm mt-1">
+              <p className="text-cyan-200 text-sm mt-1">
                 Showing pre-loaded example from UW Madison {domain.name} research
               </p>
             </div>
@@ -1012,10 +1135,10 @@ Return ONLY valid JSON (no markdown):
 
         {/* Tab 2: Search Papers */}
         {activeTab === 'search' && (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <div className="bg-blue-50 border-l-4 border-blue-500 p-3 mb-4">
-              <p className="font-semibold text-blue-900">🤖 MODE 2: AGENT MODE - Autonomous Research Discovery</p>
-              <p className="text-sm text-blue-700">The agent will search PubMed, download papers, and build a knowledge graph automatically!</p>
+          <div className="bg-slate-800 border border-amber-500/20 rounded-lg shadow-md p-6 mb-6">
+            <div className="bg-blue-900/50 border-l-4 border-cyan-400 p-3 mb-4">
+              <p className="font-semibold text-cyan-300">🤖 MODE 2: AGENT MODE - Autonomous Research Discovery</p>
+              <p className="text-sm text-cyan-200">The agent will search PubMed, download papers, and build a knowledge graph automatically!</p>
             </div>
             <h3 className="font-bold text-xl mb-4">🔍 Search UW Madison Research Papers</h3>
             <div className="flex gap-3">
@@ -1025,7 +1148,7 @@ Return ONLY valid JSON (no markdown):
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                 placeholder="e.g., 'BRCA1 breast cancer' or 'machine learning optimization'"
-                className="flex-1 border-2 border-gray-300 rounded-lg px-4 py-2"
+                className="flex-1 border-2 border-amber-500/30 bg-slate-700 text-white rounded-lg px-4 py-2"
               />
               <button
                 onClick={handleSearch}
@@ -1044,10 +1167,10 @@ Return ONLY valid JSON (no markdown):
 
         {/* Tab 3: Upload Papers */}
         {activeTab === 'upload' && (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <div className="bg-purple-50 border-l-4 border-purple-500 p-3 mb-4">
-              <p className="font-semibold text-purple-900">📄 MODE 1: MANUAL UPLOAD - Analyze Your Papers</p>
-              <p className="text-sm text-purple-700">Upload specific PDFs you already have for focused analysis</p>
+          <div className="bg-slate-800 border border-amber-500/20 rounded-lg shadow-md p-6 mb-6">
+            <div className="bg-purple-900/50 border-l-4 border-purple-400 p-3 mb-4">
+              <p className="font-semibold text-purple-300">📄 MODE 1: MANUAL UPLOAD - Analyze Your Papers</p>
+              <p className="text-sm text-purple-200">Upload specific PDFs you already have for focused analysis</p>
             </div>
             <h3 className="font-bold text-xl mb-4">📄 Upload Research Papers (PDF)</h3>
             <input
@@ -1055,9 +1178,9 @@ Return ONLY valid JSON (no markdown):
               accept=".pdf"
               multiple
               onChange={handleFileUpload}
-              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-red-50 file:text-red-700 file:font-semibold hover:file:bg-red-100"
+              className="block w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-red-50 file:text-red-700 file:font-semibold hover:file:bg-red-100"
             />
-            <p className="text-gray-500 text-sm mt-2">Upload 1-3 PDFs (max 10MB each)</p>
+            <p className="text-slate-400 text-sm mt-2">Upload 1-3 PDFs (max 10MB each)</p>
             {uploadedFiles.length > 0 && (
               <div className="mt-3">
                 <p className="font-semibold">Uploaded: {uploadedFiles.map(f => f.name).join(', ')}</p>
@@ -1071,16 +1194,16 @@ Return ONLY valid JSON (no markdown):
 
         {/* Status */}
         {status && (
-          <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 mb-6">
-            <p className="font-medium text-yellow-900">{status}</p>
+          <div className="bg-amber-900/50 border-l-4 border-amber-400 p-4 mb-6">
+            <p className="font-medium text-amber-300">{status}</p>
           </div>
         )}
 
         {/* Papers List */}
         {currentPapers.length > 0 && (
-          <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+          <div className="bg-slate-800 border border-amber-500/20 rounded-lg shadow-md p-4 mb-6">
             <h4 className="font-bold mb-2">📄 Analyzed Papers ({currentPapers.length}):</h4>
-            <ul className="list-disc list-inside text-sm text-gray-700">
+            <ul className="list-disc list-inside text-sm text-slate-300">
               {currentPapers.map((paper, i) => (
                 <li key={i}>{paper}</li>
               ))}
@@ -1090,14 +1213,14 @@ Return ONLY valid JSON (no markdown):
 
         {/* Graph Visualization */}
         {graphData.nodes.length > 0 && (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <div className="bg-slate-800 border border-amber-500/20 rounded-lg shadow-md p-6 mb-6">
             <h3 className="font-bold text-xl mb-4">🔗 Knowledge Graph</h3>
 
             {/* Warning if no edges */}
             {graphData.links.length === 0 && (
-              <div className="bg-orange-50 border-l-4 border-orange-500 p-4 mb-4">
-                <p className="font-semibold text-orange-900">⚠️ No relationships found!</p>
-                <p className="text-orange-700 text-sm">
+              <div className="bg-orange-900/50 border-l-4 border-orange-400 p-4 mb-4">
+                <p className="font-semibold text-orange-300">⚠️ No relationships found!</p>
+                <p className="text-orange-200 text-sm">
                   The graph shows {graphData.nodes.length} entities but no connections between them.
                   Check the console for extraction details.
                 </p>
@@ -1106,15 +1229,15 @@ Return ONLY valid JSON (no markdown):
 
             {/* Success message */}
             {graphData.links.length > 0 && (
-              <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-4">
-                <p className="font-semibold text-green-900">
+              <div className="bg-emerald-900/50 border-l-4 border-emerald-400 p-4 mb-4">
+                <p className="font-semibold text-emerald-300">
                   ✅ Graph complete: {graphData.nodes.length} entities, {graphData.links.length} relationships
                 </p>
               </div>
             )}
 
             {/* Legend */}
-            <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+            <div className="mb-4 p-4 bg-slate-700/50 rounded-lg">
               <h4 className="font-semibold mb-2">Entity Types:</h4>
               <div className="flex flex-wrap gap-3 mb-3">
                 {domain.entities.map(entityType => (
@@ -1142,23 +1265,47 @@ Return ONLY valid JSON (no markdown):
             </div>
 
             {/* Graph */}
-            <div className="border-2 border-gray-200 rounded-lg overflow-hidden">
+            <div className="border-2 border-amber-500/30 rounded-lg overflow-hidden bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 shadow-2xl">
               <ForceGraph2D
                 ref={graphRef}
                 graphData={graphData}
                 nodeLabel="name"
                 nodeColor={node => node.color}
-                nodeVal={node => node.val * 3}
-                linkColor={link => link.color}
+                nodeVal={node => node.val * 4}
+                nodeCanvasObject={(node, ctx, globalScale) => {
+                  const label = node.name;
+                  const fontSize = 12/globalScale;
+                  ctx.font = `${fontSize}px Sans-Serif`;
+                  const size = node.val * 4;
+
+                  // Sparkly gold glow effect
+                  ctx.shadowBlur = 15;
+                  ctx.shadowColor = '#fbbf24';
+                  ctx.fillStyle = node.color;
+                  ctx.beginPath();
+                  ctx.arc(node.x, node.y, size, 0, 2 * Math.PI, false);
+                  ctx.fill();
+
+                  // Reset shadow for text
+                  ctx.shadowBlur = 0;
+                  ctx.textAlign = 'center';
+                  ctx.textBaseline = 'middle';
+                  ctx.fillStyle = '#fef3c7';
+                  ctx.fillText(label, node.x, node.y + size + 10);
+                }}
+                linkColor={link => link.color || '#fbbf24'}
                 linkLabel={link => link.label}
-                linkWidth={2}
-                linkDirectionalArrowLength={6}
+                linkWidth={link => 2}
+                linkDirectionalArrowLength={8}
                 linkDirectionalArrowRelPos={1}
-                linkCurvature={0.2}
+                linkCurvature={0.25}
+                linkDirectionalParticles={2}
+                linkDirectionalParticleWidth={2}
+                linkDirectionalParticleColor={() => '#fbbf24'}
                 onLinkClick={(link) => setSelectedEdge(link)}
                 width={1000}
                 height={600}
-                backgroundColor="#ffffff"
+                backgroundColor="rgba(2, 6, 23, 0.95)"
               />
             </div>
 
@@ -1167,9 +1314,9 @@ Return ONLY valid JSON (no markdown):
               <button
                 onClick={generateHypotheses}
                 disabled={loading || !apiKeys.claude}
-                className="bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 disabled:bg-gray-400 transition"
+                className="bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 px-6 py-3 rounded-lg font-semibold hover:from-amber-400 hover:to-amber-500 disabled:bg-gray-400 transition shadow-lg"
               >
-                {loading ? '💡 Generating...' : '💡 Generate Research Hypotheses'}
+                {loading ? '💡 Generating...' : '✨ Generate Research Hypotheses'}
               </button>
               {!apiKeys.claude && (
                 <p className="text-orange-600 text-sm mt-2">⚠️ Claude API key required</p>
@@ -1181,7 +1328,7 @@ Return ONLY valid JSON (no markdown):
         {/* Edge Detail Modal */}
         {selectedEdge && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setSelectedEdge(null)}>
-            <div className="bg-white rounded-lg shadow-xl p-6 max-w-2xl w-full mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-slate-800 border border-amber-500/20 rounded-lg shadow-xl p-6 max-w-2xl w-full mx-4" onClick={(e) => e.stopPropagation()}>
               <h3 className="font-bold text-xl mb-4">Relationship Details</h3>
               <div className="space-y-3">
                 <div>
@@ -1210,18 +1357,18 @@ Return ONLY valid JSON (no markdown):
                 </div>
                 <div>
                   <span className="font-semibold">Evidence: </span>
-                  <p className="text-gray-700 italic mt-1 bg-gray-50 p-3 rounded">
+                  <p className="text-slate-300 italic mt-1 bg-slate-700/50 p-3 rounded">
                     "{selectedEdge.evidence}"
                   </p>
                 </div>
                 <div>
                   <span className="font-semibold">Source: </span>
-                  <span className="text-gray-700">{selectedEdge.sourceInfo}</span>
+                  <span className="text-slate-300">{selectedEdge.sourceInfo}</span>
                 </div>
               </div>
               <button
                 onClick={() => setSelectedEdge(null)}
-                className="mt-4 bg-gray-200 px-4 py-2 rounded-lg hover:bg-gray-300 transition"
+                className="mt-4 bg-amber-500 text-slate-900 px-4 py-2 rounded-lg hover:bg-amber-400 transition font-semibold"
               >
                 Close
               </button>
@@ -1231,23 +1378,23 @@ Return ONLY valid JSON (no markdown):
 
         {/* Hypotheses */}
         {hypotheses.length > 0 && (
-          <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="bg-slate-800 border border-amber-500/20 rounded-lg shadow-md p-6">
             <h3 className="font-bold text-xl mb-4">💡 Generated Research Hypotheses</h3>
             <div className="space-y-4">
               {hypotheses.map((hyp, i) => (
-                <div key={i} className="border-2 border-purple-200 rounded-lg p-4 bg-purple-50">
+                <div key={i} className="border-2 border-purple-500/30 rounded-lg p-4 bg-gradient-to-br from-purple-900/30 to-blue-900/30">
                   <div className="flex items-start justify-between mb-2">
-                    <h4 className="font-bold text-lg">{hyp.title}</h4>
-                    <span className="bg-purple-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                    <h4 className="font-bold text-lg text-purple-300">{hyp.title}</h4>
+                    <span className="bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 px-3 py-1 rounded-full text-sm font-semibold">
                       {(hyp.confidence * 100).toFixed(0)}% confidence
                     </span>
                   </div>
-                  <p className="text-gray-700 mb-3">{hyp.reasoning}</p>
+                  <p className="text-slate-300 mb-3">{hyp.reasoning}</p>
 
                   {hyp.supporting_evidence && (
                     <div className="mb-3">
-                      <p className="font-semibold text-sm mb-1">Supporting Evidence:</p>
-                      <ul className="list-disc list-inside text-sm text-gray-600">
+                      <p className="font-semibold text-sm mb-1 text-amber-400">Supporting Evidence:</p>
+                      <ul className="list-disc list-inside text-sm text-slate-400">
                         {hyp.supporting_evidence.map((ev, j) => (
                           <li key={j}>
                             {ev.relationship} (confidence: {(ev.confidence * 100).toFixed(0)}%)
@@ -1260,8 +1407,8 @@ Return ONLY valid JSON (no markdown):
 
                   {hyp.suggested_experiments && (
                     <div>
-                      <p className="font-semibold text-sm mb-1">Suggested Experiments:</p>
-                      <ul className="list-disc list-inside text-sm text-gray-600">
+                      <p className="font-semibold text-sm mb-1 text-amber-400">Suggested Experiments:</p>
+                      <ul className="list-disc list-inside text-sm text-slate-400">
                         {hyp.suggested_experiments.map((exp, j) => (
                           <li key={j}>{exp}</li>
                         ))}
@@ -1276,8 +1423,8 @@ Return ONLY valid JSON (no markdown):
 
         {/* Empty State */}
         {graphData.nodes.length === 0 && !loading && (
-          <div className="bg-white rounded-lg shadow-md p-12 text-center">
-            <p className="text-gray-500 text-lg">
+          <div className="bg-slate-800 border border-amber-500/20 rounded-lg shadow-md p-12 text-center">
+            <p className="text-slate-400 text-lg">
               {activeTab === 'uwresearch' ? 'Select a domain to see example research' :
                activeTab === 'search' ? 'Search for UW Madison papers to build a knowledge graph' :
                'Upload PDF papers to extract entities and relationships'}

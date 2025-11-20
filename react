@@ -1,0 +1,976 @@
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import ForceGraph2D from 'react-force-graph-2d';
+
+const DOMAIN_CONFIGS = {
+  biomedicine: {
+    name: 'Biomedicine',
+    icon: '🧬',
+    entityTypes: {
+      gene: { color: '#3B82F6', label: 'Gene' },
+      disease: { color: '#EF4444', label: 'Disease' },
+      drug: { color: '#10B981', label: 'Drug' },
+      protein: { color: '#F59E0B', label: 'Protein' }
+    },
+    relationshipTypes: {
+      CAUSES: { color: '#F97316', label: 'Causes' },
+      TREATS: { color: '#10B981', label: 'Treats' },
+      INHIBITS: { color: '#EF4444', label: 'Inhibits' },
+      ACTIVATES: { color: '#A855F7', label: 'Activates' },
+      ASSOCIATES_WITH: { color: '#3B82F6', label: 'Associates With' },
+      BIOMARKER_FOR: { color: '#EC4899', label: 'Biomarker For' }
+    },
+    example: {
+      title: 'Cancer Immunotherapy - Carbone Cancer Center',
+      nodes: [
+        { id: 'PD-1', type: 'protein', label: 'PD-1' },
+        { id: 'PD-L1', type: 'protein', label: 'PD-L1' },
+        { id: 'CTLA-4', type: 'protein', label: 'CTLA-4' },
+        { id: 'Melanoma', type: 'disease', label: 'Melanoma' },
+        { id: 'Lung Cancer', type: 'disease', label: 'Lung Cancer' },
+        { id: 'Pembrolizumab', type: 'drug', label: 'Pembrolizumab' },
+        { id: 'Nivolumab', type: 'drug', label: 'Nivolumab' },
+        { id: 'Ipilimumab', type: 'drug', label: 'Ipilimumab' },
+        { id: 'CD8', type: 'protein', label: 'CD8' },
+        { id: 'T-cell Receptor', type: 'protein', label: 'T-cell Receptor' },
+        { id: 'IFN-gamma', type: 'protein', label: 'IFN-gamma' }
+      ],
+      edges: [
+        { source: 'Pembrolizumab', target: 'PD-1', type: 'INHIBITS', confidence: 0.96, evidence: 'Pembrolizumab is a humanized antibody used in cancer immunotherapy that targets the programmed cell death protein 1 (PD-1) receptor of lymphocytes.', page: 3 },
+        { source: 'PD-1', target: 'T-cell Receptor', type: 'INHIBITS', confidence: 0.94, evidence: 'PD-1 is an immune checkpoint receptor that downregulates T-cell activation and proliferation when engaged by its ligands.', page: 5 },
+        { source: 'Pembrolizumab', target: 'Melanoma', type: 'TREATS', confidence: 0.91, evidence: 'Clinical trials demonstrated significant improvement in progression-free survival in metastatic melanoma patients treated with pembrolizumab.', page: 12 },
+        { source: 'CD8', target: 'Melanoma', type: 'TREATS', confidence: 0.82, evidence: 'CD8+ T cells play a critical role in anti-tumor immunity through direct cytotoxic activity against melanoma cells.', page: 8 },
+        { source: 'PD-L1', target: 'Melanoma', type: 'BIOMARKER_FOR', confidence: 0.87, evidence: 'PD-L1 expression levels correlate with response rates to checkpoint inhibitor therapy in melanoma patients.', page: 15 },
+        { source: 'Nivolumab', target: 'Lung Cancer', type: 'TREATS', confidence: 0.88, evidence: 'Nivolumab monotherapy showed superior overall survival compared to docetaxel in previously treated non-small-cell lung cancer.', page: 18 }
+      ],
+      papers: [
+        { title: 'PD-1 Blockade in Melanoma and Lung Cancer', authors: 'Smith et al.', year: 2023, journal: 'Nature Medicine' },
+        { title: 'Mechanisms of Checkpoint Inhibitor Therapy', authors: 'Johnson et al.', year: 2023, journal: 'Cell' },
+        { title: 'Biomarkers for Immunotherapy Response', authors: 'Williams et al.', year: 2024, journal: 'NEJM' }
+      ]
+    }
+  },
+  computerScience: {
+    name: 'Computer Science',
+    icon: '💻',
+    entityTypes: {
+      algorithm: { color: '#3B82F6', label: 'Algorithm' },
+      problem: { color: '#EF4444', label: 'Problem' },
+      technique: { color: '#10B981', label: 'Technique' },
+      system: { color: '#F59E0B', label: 'System' },
+      dataset: { color: '#A855F7', label: 'Dataset' }
+    },
+    relationshipTypes: {
+      SOLVES: { color: '#10B981', label: 'Solves' },
+      OPTIMIZES: { color: '#A855F7', label: 'Optimizes' },
+      OUTPERFORMS: { color: '#F97316', label: 'Outperforms' },
+      REQUIRES: { color: '#3B82F6', label: 'Requires' },
+      ENABLES: { color: '#14B8A6', label: 'Enables' },
+      EVALUATES_ON: { color: '#EC4899', label: 'Evaluates On' }
+    },
+    example: {
+      title: 'AI/ML Research - UW CS Department',
+      nodes: [
+        { id: 'Transformer', type: 'algorithm', label: 'Transformer' },
+        { id: 'BERT', type: 'system', label: 'BERT' },
+        { id: 'GPT', type: 'system', label: 'GPT' },
+        { id: 'Attention Mechanism', type: 'technique', label: 'Attention Mechanism' },
+        { id: 'Image Classification', type: 'problem', label: 'Image Classification' },
+        { id: 'NLP', type: 'problem', label: 'NLP' },
+        { id: 'ResNet', type: 'algorithm', label: 'ResNet' },
+        { id: 'ImageNet', type: 'dataset', label: 'ImageNet' },
+        { id: 'Transfer Learning', type: 'technique', label: 'Transfer Learning' },
+        { id: 'Vision Transformer', type: 'algorithm', label: 'Vision Transformer' },
+        { id: 'LSTM', type: 'algorithm', label: 'LSTM' },
+        { id: 'Seq2Seq', type: 'technique', label: 'Seq2Seq' }
+      ],
+      edges: [
+        { source: 'Attention Mechanism', target: 'Transformer', type: 'ENABLES', confidence: 0.95, evidence: 'The attention mechanism allows the model to dynamically focus on different parts of the input sequence, enabling the Transformer architecture to effectively capture long-range dependencies.', page: 4 },
+        { source: 'Transformer', target: 'NLP', type: 'SOLVES', confidence: 0.92, evidence: 'Transformer models have achieved state-of-the-art results across a wide range of natural language processing tasks including translation, summarization, and question answering.', page: 7 },
+        { source: 'BERT', target: 'LSTM', type: 'OUTPERFORMS', confidence: 0.89, evidence: 'BERT achieved significant improvements over LSTM-based models on the GLUE benchmark, with an average score increase of 7.7%.', page: 11 },
+        { source: 'Transfer Learning', target: 'Image Classification', type: 'OPTIMIZES', confidence: 0.88, evidence: 'Transfer learning reduces training time and improves accuracy on image classification tasks by leveraging pre-trained representations from large-scale datasets.', page: 9 },
+        { source: 'Vision Transformer', target: 'ImageNet', type: 'EVALUATES_ON', confidence: 0.91, evidence: 'When pre-trained on sufficient data, Vision Transformers attain excellent results on ImageNet classification, reaching 88.55% top-1 accuracy.', page: 13 },
+        { source: 'ResNet', target: 'Transfer Learning', type: 'REQUIRES', confidence: 0.85, evidence: 'ResNet architectures benefit significantly from transfer learning, as training from scratch requires substantial computational resources and data.', page: 6 }
+      ],
+      papers: [
+        { title: 'Attention Is All You Need', authors: 'Vaswani et al.', year: 2017, journal: 'NeurIPS' },
+        { title: 'BERT: Pre-training of Deep Bidirectional Transformers', authors: 'Devlin et al.', year: 2019, journal: 'NAACL' },
+        { title: 'An Image is Worth 16x16 Words', authors: 'Dosovitskiy et al.', year: 2021, journal: 'ICLR' }
+      ]
+    }
+  },
+  economics: {
+    name: 'Economics',
+    icon: '📊',
+    entityTypes: {
+      policy: { color: '#3B82F6', label: 'Policy' },
+      economic_indicator: { color: '#EF4444', label: 'Economic Indicator' },
+      market: { color: '#10B981', label: 'Market' },
+      theory: { color: '#F59E0B', label: 'Theory' },
+      intervention: { color: '#A855F7', label: 'Intervention' }
+    },
+    relationshipTypes: {
+      INFLUENCES: { color: '#F97316', label: 'Influences' },
+      CORRELATES_WITH: { color: '#3B82F6', label: 'Correlates With' },
+      CAUSES: { color: '#EF4444', label: 'Causes' },
+      MITIGATES: { color: '#10B981', label: 'Mitigates' },
+      PREDICTS: { color: '#A855F7', label: 'Predicts' },
+      RESPONDS_TO: { color: '#EC4899', label: 'Responds To' }
+    },
+    example: {
+      title: 'Labor Economics Research - UW Economics',
+      nodes: [
+        { id: 'Minimum Wage', type: 'policy', label: 'Minimum Wage' },
+        { id: 'Employment Rate', type: 'economic_indicator', label: 'Employment Rate' },
+        { id: 'Job Training Programs', type: 'intervention', label: 'Job Training Programs' },
+        { id: 'Income Inequality', type: 'economic_indicator', label: 'Income Inequality' },
+        { id: 'Unemployment', type: 'economic_indicator', label: 'Unemployment' },
+        { id: 'GDP Growth', type: 'economic_indicator', label: 'GDP Growth' },
+        { id: 'Wage Growth', type: 'economic_indicator', label: 'Wage Growth' },
+        { id: 'Labor Market', type: 'market', label: 'Labor Market' },
+        { id: 'Inflation', type: 'economic_indicator', label: 'Inflation' },
+        { id: 'Productivity', type: 'economic_indicator', label: 'Productivity' }
+      ],
+      edges: [
+        { source: 'Minimum Wage', target: 'Employment Rate', type: 'INFLUENCES', confidence: 0.78, evidence: 'Empirical studies using difference-in-differences methodology show modest effects of minimum wage increases on employment rates, with elasticities ranging from -0.1 to -0.3.', page: 15 },
+        { source: 'Job Training Programs', target: 'Unemployment', type: 'MITIGATES', confidence: 0.85, evidence: 'Randomized controlled trials demonstrate that structured job training programs reduce long-term unemployment by 12-18% among participants.', page: 22 },
+        { source: 'GDP Growth', target: 'Wage Growth', type: 'CORRELATES_WITH', confidence: 0.91, evidence: 'Time series analysis reveals a strong positive correlation (r=0.87) between GDP growth and real wage growth over the past four decades.', page: 8 },
+        { source: 'Productivity', target: 'Wage Growth', type: 'PREDICTS', confidence: 0.83, evidence: 'Productivity gains are a significant predictor of wage growth, with a one percentage point increase in productivity associated with 0.7% wage increases.', page: 18 },
+        { source: 'Inflation', target: 'GDP Growth', type: 'RESPONDS_TO', confidence: 0.79, evidence: 'Vector autoregression models show that inflation rates respond to GDP growth with a lag of 2-3 quarters, suggesting demand-pull inflation dynamics.', page: 12 },
+        { source: 'Income Inequality', target: 'Labor Market', type: 'CAUSES', confidence: 0.76, evidence: 'Rising income inequality has been associated with increased labor market segmentation and reduced intergenerational mobility.', page: 25 }
+      ],
+      papers: [
+        { title: 'The Effects of Minimum Wages on Employment', authors: 'Neumark & Shirley', year: 2022, journal: 'Journal of Economic Literature' },
+        { title: 'Job Training and Labor Market Outcomes', authors: 'Card et al.', year: 2023, journal: 'Quarterly Journal of Economics' },
+        { title: 'Productivity and Wage Dynamics', authors: 'Stansbury & Summers', year: 2023, journal: 'American Economic Review' }
+      ]
+    }
+  },
+  politicalScience: {
+    name: 'Political Science',
+    icon: '🏛️',
+    entityTypes: {
+      policy: { color: '#3B82F6', label: 'Policy' },
+      actor: { color: '#EF4444', label: 'Actor' },
+      institution: { color: '#10B981', label: 'Institution' },
+      outcome: { color: '#F59E0B', label: 'Outcome' },
+      event: { color: '#A855F7', label: 'Event' }
+    },
+    relationshipTypes: {
+      ADVOCATES_FOR: { color: '#10B981', label: 'Advocates For' },
+      OPPOSES: { color: '#EF4444', label: 'Opposes' },
+      IMPLEMENTS: { color: '#3B82F6', label: 'Implements' },
+      LEADS_TO: { color: '#F97316', label: 'Leads To' },
+      INFLUENCES: { color: '#A855F7', label: 'Influences' },
+      RESULTS_FROM: { color: '#EC4899', label: 'Results From' }
+    },
+    example: {
+      title: 'Political Behavior Research - UW Political Science',
+      nodes: [
+        { id: 'Social Media', type: 'event', label: 'Social Media' },
+        { id: 'Political Polarization', type: 'outcome', label: 'Political Polarization' },
+        { id: 'Voter Turnout', type: 'outcome', label: 'Voter Turnout' },
+        { id: 'Campaign Finance', type: 'policy', label: 'Campaign Finance' },
+        { id: 'Democratic Party', type: 'actor', label: 'Democratic Party' },
+        { id: 'Republican Party', type: 'actor', label: 'Republican Party' },
+        { id: 'Electoral College', type: 'institution', label: 'Electoral College' },
+        { id: 'Misinformation', type: 'event', label: 'Misinformation' },
+        { id: 'Legislative Gridlock', type: 'outcome', label: 'Legislative Gridlock' },
+        { id: 'Public Opinion', type: 'outcome', label: 'Public Opinion' }
+      ],
+      edges: [
+        { source: 'Social Media', target: 'Political Polarization', type: 'INFLUENCES', confidence: 0.82, evidence: 'Panel studies show that increased social media usage is associated with heightened political polarization, with users 34% more likely to hold extreme partisan views.', page: 17 },
+        { source: 'Campaign Finance', target: 'Voter Turnout', type: 'INFLUENCES', confidence: 0.76, evidence: 'Campaign spending levels correlate with voter turnout rates, particularly in competitive districts where advertising expenditures are highest.', page: 24 },
+        { source: 'Misinformation', target: 'Political Polarization', type: 'LEADS_TO', confidence: 0.88, evidence: 'Experimental evidence demonstrates that exposure to political misinformation increases affective polarization by 0.4 standard deviations.', page: 11 },
+        { source: 'Electoral College', target: 'Voter Turnout', type: 'INFLUENCES', confidence: 0.73, evidence: 'Voter turnout is systematically lower in non-competitive states due to Electoral College winner-take-all rules, with differences of 7-12 percentage points.', page: 19 },
+        { source: 'Political Polarization', target: 'Legislative Gridlock', type: 'LEADS_TO', confidence: 0.84, evidence: 'Increased partisan polarization in Congress is strongly associated with legislative gridlock, reducing the passage rate of major legislation by approximately 40%.', page: 28 },
+        { source: 'Public Opinion', target: 'Democratic Party', type: 'INFLUENCES', confidence: 0.79, evidence: 'Survey data and policy responsiveness studies show that shifts in public opinion predict changes in Democratic Party platform positions with 6-12 month lags.', page: 14 }
+      ],
+      papers: [
+        { title: 'Social Media and Political Polarization', authors: 'Bail et al.', year: 2023, journal: 'American Political Science Review' },
+        { title: 'The Effects of Misinformation on Democracy', authors: 'Guess & Lyons', year: 2023, journal: 'Political Behavior' },
+        { title: 'Electoral Systems and Voter Participation', authors: 'Fowler', year: 2024, journal: 'Journal of Politics' }
+      ]
+    }
+  },
+  mathematics: {
+    name: 'Mathematics',
+    icon: '🔢',
+    entityTypes: {
+      theorem: { color: '#3B82F6', label: 'Theorem' },
+      conjecture: { color: '#EF4444', label: 'Conjecture' },
+      method: { color: '#10B981', label: 'Method' },
+      structure: { color: '#F59E0B', label: 'Structure' },
+      application: { color: '#A855F7', label: 'Application' }
+    },
+    relationshipTypes: {
+      PROVES: { color: '#10B981', label: 'Proves' },
+      GENERALIZES: { color: '#3B82F6', label: 'Generalizes' },
+      APPLIES_TO: { color: '#F97316', label: 'Applies To' },
+      BUILDS_ON: { color: '#A855F7', label: 'Builds On' },
+      CONTRADICTS: { color: '#EF4444', label: 'Contradicts' },
+      IMPLIES: { color: '#14B8A6', label: 'Implies' }
+    },
+    example: {
+      title: 'Algebraic Topology Research - UW Mathematics',
+      nodes: [
+        { id: 'Homotopy Theory', type: 'method', label: 'Homotopy Theory' },
+        { id: 'Fundamental Group', type: 'structure', label: 'Fundamental Group' },
+        { id: 'Category Theory', type: 'method', label: 'Category Theory' },
+        { id: 'Homology', type: 'method', label: 'Homology' },
+        { id: 'Cohomology', type: 'method', label: 'Cohomology' },
+        { id: 'Manifold', type: 'structure', label: 'Manifold' },
+        { id: 'Euler Characteristic', type: 'theorem', label: 'Euler Characteristic' },
+        { id: 'Topological Space', type: 'structure', label: 'Topological Space' },
+        { id: 'Algebraic Structure', type: 'structure', label: 'Algebraic Structure' },
+        { id: 'Simplicial Complex', type: 'structure', label: 'Simplicial Complex' }
+      ],
+      edges: [
+        { source: 'Category Theory', target: 'Homotopy Theory', type: 'GENERALIZES', confidence: 0.89, evidence: 'Category theory provides a unifying framework for homotopy theory through the language of functors, natural transformations, and universal properties.', page: 42 },
+        { source: 'Homology', target: 'Fundamental Group', type: 'BUILDS_ON', confidence: 0.94, evidence: 'Homology theory extends the algebraic invariants introduced by the fundamental group to higher dimensions using chain complexes and boundary operators.', page: 67 },
+        { source: 'Euler Characteristic', target: 'Manifold', type: 'APPLIES_TO', confidence: 0.96, evidence: 'The Euler characteristic provides a topological invariant for compact manifolds that can be computed via triangulation or homology groups.', page: 28 },
+        { source: 'Cohomology', target: 'Homology', type: 'GENERALIZES', confidence: 0.92, evidence: 'Cohomology dualizes homology theory and introduces additional algebraic structure including cup products and cohomology rings.', page: 89 },
+        { source: 'Homotopy Theory', target: 'Topological Space', type: 'PROVES', confidence: 0.88, evidence: 'Homotopy theory establishes fundamental results about the structure of topological spaces including the classification of covering spaces and fibrations.', page: 51 },
+        { source: 'Simplicial Complex', target: 'Topological Space', type: 'BUILDS_ON', confidence: 0.86, evidence: 'Simplicial complexes provide a combinatorial model for topological spaces that enables computational approaches to topological invariants.', page: 34 }
+      ],
+      papers: [
+        { title: 'Algebraic Topology', authors: 'Hatcher, A.', year: 2002, journal: 'Cambridge University Press' },
+        { title: 'Categories for the Working Mathematician', authors: 'Mac Lane, S.', year: 1998, journal: 'Springer' },
+        { title: 'Topology and Geometry', authors: 'Bredon, G.', year: 1997, journal: 'Springer' }
+      ]
+    }
+  }
+};
+
+export default function BadgerResearchGraph() {
+  const [activeTab, setActiveTab] = useState(0);
+  const [selectedDomain, setSelectedDomain] = useState('biomedicine');
+  const [graphData, setGraphData] = useState({ nodes: [], links: [] });
+  const [selectedEdge, setSelectedEdge] = useState(null);
+  const [showEdgeModal, setShowEdgeModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchProgress, setSearchProgress] = useState('');
+  const [hypotheses, setHypotheses] = useState([]);
+  const [showHypotheses, setShowHypotheses] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  
+  const graphRef = useRef();
+  const fileInputRef = useRef();
+
+  const currentDomain = DOMAIN_CONFIGS[selectedDomain];
+
+  // Load example data when domain changes
+  useEffect(() => {
+    if (activeTab === 0) {
+      loadExampleData();
+    }
+  }, [selectedDomain, activeTab]);
+
+  const loadExampleData = () => {
+    const example = currentDomain.example;
+    const nodes = example.nodes.map(node => ({
+      id: node.id,
+      label: node.label,
+      type: node.type,
+      color: currentDomain.entityTypes[node.type].color,
+      val: 8
+    }));
+
+    const links = example.edges.map((edge, idx) => ({
+      source: edge.source,
+      target: edge.target,
+      type: edge.type,
+      confidence: edge.confidence,
+      evidence: edge.evidence,
+      page: edge.page,
+      color: currentDomain.relationshipTypes[edge.type].color,
+      id: `edge-${idx}`
+    }));
+
+    setGraphData({ nodes, links });
+    setShowHypotheses(false);
+  };
+
+  const handleEdgeClick = (link) => {
+    setSelectedEdge(link);
+    setShowEdgeModal(true);
+  };
+
+  const getPlaceholderForDomain = () => {
+    const placeholders = {
+      biomedicine: 'Search for papers on cancer immunotherapy, CRISPR gene editing, protein folding...',
+      computerScience: 'Search for papers on transformers, deep learning, neural networks...',
+      economics: 'Search for papers on labor markets, monetary policy, income inequality...',
+      politicalScience: 'Search for papers on voting behavior, polarization, institutions...',
+      mathematics: 'Search for papers on topology, category theory, differential equations...'
+    };
+    return placeholders[selectedDomain];
+  };
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+    
+    setIsProcessing(true);
+    setSearchProgress('🔍 Searching academic databases...');
+    
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    setSearchProgress('📚 Found 12 papers');
+    
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    setSearchProgress('🧬 Extracting entities and relationships...');
+    
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Generate mock search results based on domain
+    const mockNodes = generateMockNodes(6);
+    const mockLinks = generateMockLinks(mockNodes, 5);
+    
+    setGraphData({ nodes: mockNodes, links: mockLinks });
+    setSearchProgress('✅ Analysis complete! Found ' + mockNodes.length + ' entities and ' + mockLinks.length + ' relationships.');
+    setIsProcessing(false);
+  };
+
+  const generateMockNodes = (count) => {
+    const entityTypes = Object.keys(currentDomain.entityTypes);
+    const nodes = [];
+    const prefixes = {
+      biomedicine: ['Protein', 'Gene', 'Drug', 'Disease', 'Receptor', 'Enzyme'],
+      computerScience: ['Algorithm', 'Model', 'System', 'Method', 'Network', 'Architecture'],
+      economics: ['Policy', 'Market', 'Indicator', 'Theory', 'Factor', 'Intervention'],
+      politicalScience: ['Policy', 'Institution', 'Actor', 'Movement', 'Event', 'Outcome'],
+      mathematics: ['Theorem', 'Structure', 'Method', 'Space', 'Function', 'Group']
+    };
+    
+    for (let i = 0; i < count; i++) {
+      const type = entityTypes[i % entityTypes.length];
+      const prefix = prefixes[selectedDomain][i % prefixes[selectedDomain].length];
+      nodes.push({
+        id: `${prefix}-${i + 1}`,
+        label: `${prefix} ${String.fromCharCode(65 + i)}`,
+        type: type,
+        color: currentDomain.entityTypes[type].color,
+        val: 6 + Math.random() * 4
+      });
+    }
+    return nodes;
+  };
+
+  const generateMockLinks = (nodes, count) => {
+    const relationshipTypes = Object.keys(currentDomain.relationshipTypes);
+    const links = [];
+    
+    for (let i = 0; i < Math.min(count, nodes.length - 1); i++) {
+      const type = relationshipTypes[i % relationshipTypes.length];
+      links.push({
+        source: nodes[i].id,
+        target: nodes[i + 1].id,
+        type: type,
+        confidence: 0.75 + Math.random() * 0.2,
+        evidence: `Research indicates a significant relationship between ${nodes[i].label} and ${nodes[i + 1].label} based on multiple studies.`,
+        page: Math.floor(Math.random() * 30) + 5,
+        color: currentDomain.relationshipTypes[type].color,
+        id: `edge-${i}`
+      });
+    }
+    return links;
+  };
+
+  const handleFileUpload = async (files) => {
+    setUploadedFiles(Array.from(files));
+    setIsProcessing(true);
+    setSearchProgress('📄 Processing PDFs...');
+    
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    setSearchProgress('🧬 Extracting entities and relationships...');
+    
+    await new Promise(resolve => setTimeout(resolve, 2500));
+    
+    const mockNodes = generateMockNodes(8);
+    const mockLinks = generateMockLinks(mockNodes, 7);
+    
+    setGraphData({ nodes: mockNodes, links: mockLinks });
+    setSearchProgress('✅ Analysis complete! Processed ' + files.length + ' paper(s).');
+    setIsProcessing(false);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      handleFileUpload(files);
+    }
+  };
+
+  const generateHypotheses = async () => {
+    setIsProcessing(true);
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    const mockHypotheses = {
+      biomedicine: [
+        {
+          title: 'Combined PD-1 and CTLA-4 Blockade May Enhance T-cell Activation',
+          confidence: 0.88,
+          reasoning: 'Based on the observed inhibitory pathways, dual checkpoint inhibition could synergistically enhance anti-tumor immunity by removing multiple T-cell suppression mechanisms.',
+          evidence: 'PD-1 and CTLA-4 operate through distinct mechanisms in T-cell regulation, suggesting complementary therapeutic effects.',
+          experiments: ['In vitro T-cell activation assays with dual blockade', 'Mouse tumor models comparing monotherapy vs combination', 'Phase I clinical trial in refractory melanoma']
+        },
+        {
+          title: 'PD-L1 Expression Levels Predict Response to Pembrolizumab',
+          confidence: 0.82,
+          reasoning: 'The strong biomarker relationship suggests PD-L1 could serve as a patient selection criterion for pembrolizumab therapy.',
+          evidence: 'Correlation between PD-L1 expression and treatment efficacy observed across multiple cancer types.',
+          experiments: ['Retrospective analysis of PD-L1 levels and treatment outcomes', 'Prospective biomarker-stratified clinical trial', 'Single-cell analysis of PD-L1+ tumor cells']
+        },
+        {
+          title: 'IFN-gamma Signaling May Mediate CD8+ T-cell Anti-tumor Activity',
+          confidence: 0.79,
+          reasoning: 'The connection between CD8 T-cells and tumor treatment suggests IFN-gamma as a potential mechanistic link worth investigating.',
+          evidence: 'IFN-gamma is a key effector cytokine produced by activated CD8+ T-cells with known anti-tumor properties.',
+          experiments: ['IFN-gamma knockout studies in tumor models', 'Measurement of IFN-gamma levels in responding patients', 'In vitro cytotoxicity assays with IFN-gamma blockade']
+        }
+      ],
+      computerScience: [
+        {
+          title: 'Vision Transformers May Outperform CNNs with Sufficient Pre-training Data',
+          confidence: 0.91,
+          reasoning: 'The combination of attention mechanisms and transfer learning suggests Vision Transformers could surpass convolutional architectures when trained on large-scale datasets.',
+          evidence: 'Transformers have demonstrated superior scaling properties in NLP, and similar dynamics may apply to computer vision.',
+          experiments: ['Large-scale pre-training experiments (>100M images)', 'Systematic comparison with ResNet on various dataset sizes', 'Analysis of attention patterns vs convolutional filters']
+        },
+        {
+          title: 'Hybrid Transformer-CNN Architectures Could Optimize Image Classification',
+          confidence: 0.84,
+          reasoning: 'Combining the inductive biases of CNNs with the flexibility of Transformers may provide optimal performance across diverse image tasks.',
+          evidence: 'Both architectures show complementary strengths in capturing local and global image features.',
+          experiments: ['Design and test hybrid architectures', 'Ablation studies on different integration strategies', 'Evaluation on fine-grained classification tasks']
+        },
+        {
+          title: 'Transfer Learning from BERT May Accelerate Seq2Seq Task Performance',
+          confidence: 0.80,
+          reasoning: 'BERT\'s bidirectional pre-training could provide better initialization for sequence-to-sequence models than random initialization.',
+          evidence: 'Pre-trained representations have shown consistent benefits across NLP tasks.',
+          experiments: ['Fine-tune BERT for translation and summarization', 'Compare with Seq2Seq models trained from scratch', 'Analyze layer-wise transfer effectiveness']
+        }
+      ],
+      economics: [
+        {
+          title: 'Job Training Programs May Mitigate Minimum Wage Employment Effects',
+          confidence: 0.81,
+          reasoning: 'The combined analysis suggests that targeted training could offset potential employment disruptions from minimum wage increases by improving worker productivity.',
+          evidence: 'Both minimum wage and training programs affect employment through distinct mechanisms that may be complementary.',
+          experiments: ['Natural experiment using regional policy variation', 'Randomized controlled trial of training + wage policy', 'Structural modeling of labor market equilibrium']
+        },
+        {
+          title: 'Productivity Growth Acceleration Could Reduce Income Inequality',
+          confidence: 0.77,
+          reasoning: 'Since productivity predicts wage growth, boosting productivity broadly could raise wages for lower-income workers if gains are shared equitably.',
+          evidence: 'Historical periods of broad-based productivity growth coincided with reduced inequality.',
+          experiments: ['Cross-country panel analysis of productivity and inequality', 'Firm-level studies of productivity sharing mechanisms', 'Policy simulations of productivity-enhancing investments']
+        },
+        {
+          title: 'Inflation Targeting May Be More Effective During High GDP Growth Periods',
+          confidence: 0.75,
+          reasoning: 'The responsiveness of inflation to GDP growth suggests monetary policy effectiveness may vary with economic conditions.',
+          evidence: 'The identified lag structure indicates demand-side channels that are stronger during expansions.',
+          experiments: ['State-dependent VAR models of monetary policy', 'Historical case studies of policy regimes', 'DSGE model simulations with time-varying parameters']
+        }
+      ],
+      politicalScience: [
+        {
+          title: 'Social Media Literacy Programs Could Reduce Misinformation-Driven Polarization',
+          confidence: 0.83,
+          reasoning: 'Since both social media and misinformation drive polarization, interventions that improve media literacy could disrupt these pathways.',
+          evidence: 'Educational interventions have shown promise in reducing susceptibility to misinformation.',
+          experiments: ['Randomized trial of media literacy curriculum', 'Longitudinal survey tracking attitudes and misinformation exposure', 'Field experiment on social media platforms']
+        },
+        {
+          title: 'Campaign Finance Reform May Increase Voter Turnout in Non-competitive States',
+          confidence: 0.78,
+          reasoning: 'By altering campaign spending patterns, finance reforms could increase competitiveness and thereby boost participation in currently uncompetitive regions.',
+          evidence: 'The relationship between spending and turnout suggests that redistributing campaign resources could affect participation.',
+          experiments: ['Analysis of state-level campaign finance reforms', 'Synthetic control methods for policy evaluation', 'Survey experiments on perceived competitiveness']
+        },
+        {
+          title: 'Institutional Reforms to Reduce Gridlock Could Moderate Polarization',
+          confidence: 0.80,
+          reasoning: 'Breaking legislative gridlock through procedural reforms might reduce polarization by enabling compromise and policy achievement.',
+          evidence: 'The causal link from polarization to gridlock suggests feedback effects may operate in both directions.',
+          experiments: ['Comparative analysis of legislative rules across democracies', 'Agent-based models of legislative behavior', 'Historical case studies of institutional reforms']
+        }
+      ],
+      mathematics: [
+        {
+          title: 'Categorical Homotopy Theory May Provide New Proofs for Manifold Classification',
+          confidence: 0.87,
+          reasoning: 'The generalization of homotopy theory through category theory suggests new conceptual tools could yield alternative approaches to classical manifold theorems.',
+          evidence: 'Category theory has previously enabled new proofs of fundamental results by revealing underlying universal structures.',
+          experiments: ['Formalize manifold invariants in categorical framework', 'Apply higher category theory to cobordism classes', 'Investigate connections to derived algebraic geometry']
+        },
+        {
+          title: 'Computational Homology Could Accelerate Discovery of Topological Data Analysis Applications',
+          confidence: 0.84,
+          reasoning: 'Since simplicial complexes provide computational models for topological spaces, algorithmic advances could enable new practical applications of homology theory.',
+          evidence: 'Recent computational tools have made persistent homology tractable for large-scale data analysis.',
+          experiments: ['Develop efficient algorithms for higher-dimensional homology', 'Apply to neuroscience data (brain networks)', 'Benchmark against traditional statistical methods']
+        },
+        {
+          title: 'Cohomology Ring Structure May Distinguish Manifolds Beyond Euler Characteristic',
+          confidence: 0.90,
+          reasoning: 'While the Euler characteristic provides a single invariant, the full cohomology ring structure offers richer information for manifold classification.',
+          evidence: 'Cohomology generalizes homology with additional algebraic structure that captures finer topological distinctions.',
+          experiments: ['Compute cohomology rings for families of manifolds', 'Investigate cup product constraints', 'Relate to other invariants (characteristic classes)']
+        }
+      ]
+    };
+    
+    setHypotheses(mockHypotheses[selectedDomain]);
+    setShowHypotheses(true);
+    setIsProcessing(false);
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      {/* Header */}
+      <header className="bg-white shadow-md border-b-4 border-[#C5050C]">
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          <h1 className="text-4xl font-bold text-[#C5050C] mb-2">
+            🦡 Badger Research Graph
+          </h1>
+          <p className="text-gray-600 text-lg">
+            AI-Powered Cross-Disciplinary Research • UW-Madison
+          </p>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Tabs */}
+        <div className="flex space-x-1 mb-6 bg-white rounded-lg shadow-md p-1">
+          {['🦡 UW Research', '🔍 Search Papers', '📄 Upload Papers'].map((tab, idx) => (
+            <button
+              key={idx}
+              onClick={() => {
+                setActiveTab(idx);
+                setShowHypotheses(false);
+                setSearchProgress('');
+                if (idx === 0) loadExampleData();
+              }}
+              className={`flex-1 py-3 px-6 rounded-md font-semibold transition-all duration-300 ${
+                activeTab === idx
+                  ? 'bg-[#C5050C] text-white shadow-lg'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        {/* Domain Selector */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            Research Domain
+          </label>
+          <select
+            value={selectedDomain}
+            onChange={(e) => {
+              setSelectedDomain(e.target.value);
+              setShowHypotheses(false);
+              setSearchProgress('');
+            }}
+            className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-[#C5050C] focus:ring focus:ring-red-200 transition-all duration-300 text-lg"
+          >
+            {Object.entries(DOMAIN_CONFIGS).map(([key, domain]) => (
+              <option key={key} value={key}>
+                {domain.icon} {domain.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Tab Content */}
+        {activeTab === 0 && (
+          <div>
+            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                {currentDomain.example.title}
+              </h2>
+              <div className="flex space-x-6 text-sm text-gray-600">
+                <span>
+                  <strong>{graphData.nodes.length}</strong> entities
+                </span>
+                <span>
+                  <strong>{graphData.links.length}</strong> relationships
+                </span>
+                <span>
+                  <strong>{currentDomain.example.papers.length}</strong> papers
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 1 && (
+          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">
+              Search Academic Literature
+            </h2>
+            <div className="flex space-x-3 mb-4">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                placeholder={getPlaceholderForDomain()}
+                className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-[#C5050C] focus:ring focus:ring-red-200 transition-all duration-300"
+              />
+              <button
+                onClick={handleSearch}
+                disabled={isProcessing}
+                className="px-8 py-3 bg-[#C5050C] text-white font-semibold rounded-lg hover:bg-red-700 transition-all duration-300 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Find & Analyze Papers
+              </button>
+            </div>
+            {searchProgress && (
+              <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+                <p className="text-blue-800 font-medium">{searchProgress}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 2 && (
+          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">
+              Upload Research Papers
+            </h2>
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+              className={`border-3 border-dashed rounded-lg p-12 text-center cursor-pointer transition-all duration-300 ${
+                isDragging
+                  ? 'border-[#C5050C] bg-red-50'
+                  : 'border-gray-300 hover:border-[#C5050C] hover:bg-gray-50'
+              }`}
+            >
+              <div className="text-6xl mb-4">📄</div>
+              <p className="text-lg font-semibold text-gray-700 mb-2">
+                Drop PDF files here or click to browse
+              </p>
+              <p className="text-sm text-gray-500">
+                Support for multiple PDF research papers
+              </p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept=".pdf"
+                onChange={(e) => handleFileUpload(e.target.files)}
+                className="hidden"
+              />
+            </div>
+            {uploadedFiles.length > 0 && (
+              <div className="mt-4">
+                <h3 className="font-semibold text-gray-700 mb-2">Uploaded Files:</h3>
+                <ul className="space-y-1">
+                  {uploadedFiles.map((file, idx) => (
+                    <li key={idx} className="text-sm text-gray-600">
+                      📄 {file.name}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {searchProgress && (
+              <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded mt-4">
+                <p className="text-blue-800 font-medium">{searchProgress}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Graph Container */}
+        {graphData.nodes.length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
+            {/* Legend */}
+            <div className="lg:col-span-1">
+              <div className="bg-white rounded-lg shadow-md p-6 sticky top-6">
+                <h3 className="text-lg font-bold text-gray-800 mb-4">Legend</h3>
+                
+                <div className="mb-6">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-3">Entity Types</h4>
+                  <div className="space-y-2">
+                    {Object.entries(currentDomain.entityTypes).map(([key, type]) => (
+                      <div key={key} className="flex items-center space-x-2">
+                        <div
+                          className="w-4 h-4 rounded-full"
+                          style={{ backgroundColor: type.color }}
+                        />
+                        <span className="text-sm text-gray-600">{type.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-700 mb-3">Relationships</h4>
+                  <div className="space-y-2">
+                    {Object.entries(currentDomain.relationshipTypes).map(([key, type]) => (
+                      <div key={key} className="flex items-center space-x-2">
+                        <div
+                          className="w-8 h-0.5"
+                          style={{ backgroundColor: type.color }}
+                        />
+                        <span className="text-sm text-gray-600">{type.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Graph */}
+            <div className="lg:col-span-3">
+              <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                <ForceGraph2D
+                  ref={graphRef}
+                  graphData={graphData}
+                  nodeLabel="label"
+                  nodeColor="color"
+                  nodeVal="val"
+                  nodeCanvasObject={(node, ctx, globalScale) => {
+                    const label = node.label;
+                    const fontSize = 12 / globalScale;
+                    ctx.font = `${fontSize}px Sans-Serif`;
+                    const textWidth = ctx.measureText(label).width;
+                    const bckgDimensions = [textWidth, fontSize].map(n => n + fontSize * 0.4);
+
+                    ctx.fillStyle = node.color;
+                    ctx.beginPath();
+                    ctx.arc(node.x, node.y, node.val, 0, 2 * Math.PI, false);
+                    ctx.fill();
+
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillStyle = 'white';
+                    ctx.font = `bold ${fontSize}px Sans-Serif`;
+                    ctx.fillText(label, node.x, node.y);
+                  }}
+                  linkLabel={(link) => `${link.type} (${link.confidence.toFixed(2)})`}
+                  linkColor="color"
+                  linkWidth={2}
+                  linkDirectionalArrowLength={6}
+                  linkDirectionalArrowRelPos={1}
+                  linkCurvature={0.2}
+                  onLinkClick={handleEdgeClick}
+                  width={800}
+                  height={600}
+                  backgroundColor="#f9fafb"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Generate Hypotheses Button */}
+        {graphData.nodes.length > 0 && (
+          <div className="text-center mb-6">
+            <button
+              onClick={generateHypotheses}
+              disabled={isProcessing}
+              className="px-10 py-4 bg-[#C5050C] text-white text-lg font-bold rounded-lg hover:bg-red-700 transition-all duration-300 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isProcessing ? '🔄 Generating...' : '🧪 Generate Research Hypotheses'}
+            </button>
+          </div>
+        )}
+
+        {/* Hypotheses Display */}
+        {showHypotheses && hypotheses.length > 0 && (
+          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 className="text-2xl font-bold text-gray-800 mb-6">
+              Generated Research Hypotheses
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {hypotheses.map((hyp, idx) => (
+                <div
+                  key={idx}
+                  className="border-2 border-gray-200 rounded-lg p-6 hover:border-[#C5050C] transition-all duration-300 hover:shadow-lg"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <h3 className="text-lg font-bold text-gray-800 flex-1">
+                      {hyp.title}
+                    </h3>
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        hyp.confidence >= 0.85
+                          ? 'bg-green-100 text-green-800'
+                          : hyp.confidence >= 0.75
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-orange-100 text-orange-800'
+                      }`}
+                    >
+                      {(hyp.confidence * 100).toFixed(0)}%
+                    </span>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div>
+                      <h4 className="text-sm font-semibold text-gray-700 mb-1">
+                        Reasoning:
+                      </h4>
+                      <p className="text-sm text-gray-600">{hyp.reasoning}</p>
+                    </div>
+                    
+                    <div>
+                      <h4 className="text-sm font-semibold text-gray-700 mb-1">
+                        Evidence:
+                      </h4>
+                      <p className="text-sm text-gray-600 italic">{hyp.evidence}</p>
+                    </div>
+                    
+                    <div>
+                      <h4 className="text-sm font-semibold text-gray-700 mb-1">
+                        Suggested Experiments:
+                      </h4>
+                      <ul className="text-sm text-gray-600 list-disc list-inside space-y-1">
+                        {hyp.experiments.map((exp, expIdx) => (
+                          <li key={expIdx}>{exp}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Papers List */}
+        {activeTab === 0 && currentDomain.example.papers && (
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">
+              Source Publications
+            </h2>
+            <div className="space-y-3">
+              {currentDomain.example.papers.map((paper, idx) => (
+                <div
+                  key={idx}
+                  className="border-l-4 border-[#C5050C] bg-gray-50 p-4 rounded-r-lg"
+                >
+                  <h3 className="font-semibold text-gray-800">{paper.title}</h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {paper.authors} • {paper.year} • {paper.journal}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Edge Detail Modal */}
+      {showEdgeModal && selectedEdge && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowEdgeModal(false)}
+        >
+          <div
+            className="bg-white rounded-lg shadow-2xl max-w-2xl w-full p-8"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between mb-6">
+              <h2
+                className="text-2xl font-bold"
+                style={{ color: selectedEdge.color }}
+              >
+                {selectedEdge.type}
+              </h2>
+              <button
+                onClick={() => setShowEdgeModal(false)}
+                className="text-gray-400 hover:text-gray-600 text-2xl"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-700 mb-2">
+                  Relationship
+                </h3>
+                <p className="text-lg text-gray-800">
+                  <span className="font-semibold">{selectedEdge.source.label || selectedEdge.source}</span>
+                  {' → '}
+                  <span className="font-semibold">{selectedEdge.target.label || selectedEdge.target}</span>
+                </p>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-gray-700 mb-2">
+                  Confidence Score
+                </h3>
+                <div className="flex items-center space-x-3">
+                  <div className="flex-1 bg-gray-200 rounded-full h-4">
+                    <div
+                      className="h-4 rounded-full transition-all duration-300"
+                      style={{
+                        width: `${selectedEdge.confidence * 100}%`,
+                        backgroundColor: selectedEdge.color
+                      }}
+                    />
+                  </div>
+                  <span className="text-lg font-bold text-gray-800">
+                    {(selectedEdge.confidence * 100).toFixed(0)}%
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-gray-700 mb-2">
+                  Evidence
+                </h3>
+                <p className="text-gray-700 italic bg-gray-50 p-4 rounded-lg border-l-4" style={{ borderColor: selectedEdge.color }}>
+                  "{selectedEdge.evidence}"
+                </p>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-gray-700 mb-2">
+                  Source
+                </h3>
+                <p className="text-gray-600">
+                  Page {selectedEdge.page}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-8 text-right">
+              <button
+                onClick={() => setShowEdgeModal(false)}
+                className="px-6 py-2 bg-[#C5050C] text-white font-semibold rounded-lg hover:bg-red-700 transition-all duration-300"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

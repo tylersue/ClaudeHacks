@@ -30,15 +30,16 @@ const DOMAINS = {
   computerscience: {
     name: 'Computer Science',
     icon: '💻',
-    entities: ['algorithm', 'problem', 'technique', 'system', 'dataset', 'model'],
-    relationships: ['SOLVES', 'OPTIMIZES', 'OUTPERFORMS', 'REQUIRES', 'ENABLES', 'EVALUATES_ON', 'IMPLEMENTS'],
+    entities: ['algorithm', 'problem', 'technique', 'system', 'dataset', 'model', 'researcher'],
+    relationships: ['SOLVES', 'OPTIMIZES', 'OUTPERFORMS', 'REQUIRES', 'ENABLES', 'EVALUATES_ON', 'IMPLEMENTS', 'RESEARCHES', 'COLLABORATES_WITH', 'AUTHORED'],
     colors: {
       algorithm: '#3b82f6',
       problem: '#ef4444',
       technique: '#10b981',
       system: '#f59e0b',
       dataset: '#8b5cf6',
-      model: '#06b6d4'
+      model: '#06b6d4',
+      researcher: '#9333ea'
     },
     relationshipColors: {
       SOLVES: '#10b981',
@@ -47,7 +48,10 @@ const DOMAINS = {
       REQUIRES: '#3b82f6',
       ENABLES: '#14b8a6',
       EVALUATES_ON: '#ec4899',
-      IMPLEMENTS: '#f59e0b'
+      IMPLEMENTS: '#f59e0b',
+      RESEARCHES: '#06b6d4',
+      COLLABORATES_WITH: '#ec4899',
+      AUTHORED: '#9333ea'
     }
   },
   economics: {
@@ -322,17 +326,41 @@ export default function BadgerResearchGraph() {
 
   // ========== API INTEGRATIONS ==========
 
-  const searchPubMed = async (query) => {
+  const searchPubMed = async (query, attempt = 1) => {
     try {
-      // Step 1: Search for papers
-      const pubmedQuery = `${query} AND University of Wisconsin-Madison[Affiliation]`;
-      const searchUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=${encodeURIComponent(pubmedQuery)}&retmax=5&retmode=json`;
+      // Build query with proper format
+      let searchTerm = query;
+
+      // Fallback queries if first attempt returns 0 results
+      if (attempt === 2 && selectedDomain === 'computerscience') {
+        console.log('🔄 Trying broader term: computer science');
+        searchTerm = searchTerm.replace(/computer\s+systems?/i, 'computer science');
+      } else if (attempt === 3 && selectedDomain === 'computerscience') {
+        console.log('🔄 Trying broader term: operating systems');
+        searchTerm = 'operating systems';
+      }
+
+      // Step 1: Search for papers with UW Madison affiliation
+      const pubmedQuery = `${searchTerm}+AND+University+of+Wisconsin-Madison[Affiliation]`;
+      const searchUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=${pubmedQuery}&retmode=json&retmax=10`;
+
+      console.log('🔍 PubMed Search URL:', searchUrl);
+      console.log('📝 Search term:', searchTerm);
 
       const searchResponse = await fetch(searchUrl);
       const searchData = await searchResponse.json();
+      console.log('📊 PubMed search response:', searchData);
+
       const pmids = searchData.esearchresult?.idlist || [];
+      console.log(`✅ Found ${pmids.length} PubMed IDs:`, pmids);
+
+      if (pmids.length === 0 && attempt < 3) {
+        console.log('⚠️ No results, trying fallback query...');
+        return await searchPubMed(query, attempt + 1);
+      }
 
       if (pmids.length === 0) {
+        console.log('❌ No PubMed results found after all attempts');
         return { abstracts: [], papers: [] };
       }
 
@@ -340,13 +368,17 @@ export default function BadgerResearchGraph() {
 
       // Step 2: Fetch abstracts
       const fetchUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=${pmids.join(',')}&retmode=xml`;
+      console.log('📄 Fetching abstracts from:', fetchUrl);
+
       const abstractsResponse = await fetch(fetchUrl);
       const abstractsXml = await abstractsResponse.text();
+      console.log('📄 Received XML, length:', abstractsXml.length);
 
-      // Parse XML (simple parsing)
+      // Parse XML
       const parser = new DOMParser();
       const xmlDoc = parser.parseFromString(abstractsXml, 'text/xml');
       const articles = xmlDoc.getElementsByTagName('PubmedArticle');
+      console.log(`📚 Parsed ${articles.length} articles from XML`);
 
       const papers = [];
       const abstracts = [];
@@ -354,6 +386,7 @@ export default function BadgerResearchGraph() {
       for (let article of articles) {
         const titleElem = article.getElementsByTagName('ArticleTitle')[0];
         const abstractElems = article.getElementsByTagName('AbstractText');
+        const authorElems = article.getElementsByTagName('Author');
 
         const title = titleElem?.textContent || 'Untitled';
         let abstract = '';
@@ -361,21 +394,37 @@ export default function BadgerResearchGraph() {
           abstract += absElem.textContent + ' ';
         }
 
-        if (abstract) {
+        // Get authors
+        let authors = [];
+        for (let i = 0; i < Math.min(3, authorElems.length); i++) {
+          const lastName = authorElems[i].getElementsByTagName('LastName')[0]?.textContent;
+          const foreName = authorElems[i].getElementsByTagName('ForeName')[0]?.textContent;
+          if (lastName) {
+            authors.push(foreName ? `${foreName} ${lastName}` : lastName);
+          }
+        }
+
+        console.log(`📄 Paper: "${title.substring(0, 60)}..." by ${authors.join(', ')}`);
+
+        if (abstract || title) {
           papers.push(title);
-          abstracts.push(`Title: ${title}\n\nAbstract: ${abstract}\n\n`);
+          const authorStr = authors.length > 0 ? `\nAuthors: ${authors.join(', ')}` : '';
+          abstracts.push(`Title: ${title}${authorStr}\n\nAbstract: ${abstract || 'No abstract available'}\n\n`);
         }
       }
 
+      console.log(`✅ Returning ${papers.length} papers with abstracts`);
       return { abstracts, papers };
     } catch (error) {
-      console.error('PubMed API error:', error);
+      console.error('❌ PubMed API error:', error);
       return { abstracts: [], papers: [] };
     }
   };
 
   const searchGoogleScholar = async (query) => {
     if (!apiKeys.serpapi) {
+      console.log('⚠️ SerpAPI key missing - skipping Google Scholar');
+      setStatus('⚠️ Add SerpAPI key in Settings for Google Scholar results');
       return { abstracts: [], papers: [] };
     }
 
@@ -384,21 +433,28 @@ export default function BadgerResearchGraph() {
       const scholarQuery = `${query} author:"university of wisconsin madison"`;
       const scholarUrl = `https://serpapi.com/search?engine=google_scholar&q=${encodeURIComponent(scholarQuery)}&api_key=${apiKeys.serpapi}`;
 
+      console.log('🎓 Google Scholar URL:', scholarUrl);
+
       const response = await fetch(scholarUrl);
       const data = await response.json();
+
+      console.log('🎓 Google Scholar response:', data);
 
       const papers = [];
       const abstracts = [];
 
       const results = data.organic_results?.slice(0, 3) || [];
+      console.log(`📚 Found ${results.length} Google Scholar results`);
+
       for (let result of results) {
+        console.log(`📄 Scholar paper: "${result.title.substring(0, 60)}..."`);
         papers.push(result.title);
         abstracts.push(`Title: ${result.title}\n\nSnippet: ${result.snippet || 'No abstract available'}\n\n`);
       }
 
       return { abstracts, papers };
     } catch (error) {
-      console.error('Google Scholar API error:', error);
+      console.error('❌ Google Scholar API error:', error);
       return { abstracts: [], papers: [] };
     }
   };
@@ -408,33 +464,58 @@ export default function BadgerResearchGraph() {
       throw new Error('Claude API key required. Please add it in Settings.');
     }
 
-    setStatus('🧬 Extracting entities with Claude AI...');
+    setStatus('🧬 Extracting entities and relationships with Claude AI...');
 
     const domain = DOMAINS[selectedDomain];
-    const prompt = `Extract from these ${domain.name} research papers by UW Madison researchers:
+    const prompt = `You are analyzing ${domain.name} research papers from UW Madison. Your task is to extract entities AND find relationships between them.
 
+PAPERS:
 ${combinedAbstracts}
 
-Extract:
-1. ENTITIES: ${domain.entities.join(', ')}
-2. RELATIONSHIPS: ${domain.relationships.join(', ')}
+STEP 1 - EXTRACT ENTITIES:
+Find all entities of these types: ${domain.entities.join(', ')}
 
-Each relationship needs: entity1, entity2, type, confidence (0-1), evidence (brief quote), source (paper title)
+STEP 2 - FIND RELATIONSHIPS (CRITICAL):
+For each paper, look for entities that appear together and CREATE EDGES between them.
+
+IMPORTANT RULES FOR RELATIONSHIPS:
+1. When multiple entities appear in the same paragraph/section, they are likely related
+2. For Computer Science: If a researcher name appears with a topic/system, create: researcher RESEARCHES topic
+3. If two researchers co-author, create: researcher1 COLLABORATES_WITH researcher2
+4. If a method is applied to a problem, create: method SOLVES problem
+5. Look for verbs and context clues to determine relationship type
+6. Create AT LEAST 3-5 relationships PER PAPER
+7. Every entity should connect to at least 1-2 other entities
+
+RELATIONSHIP TYPES to use:
+${domain.relationships.join(', ')}
+
+EXAMPLES:
+- If paper mentions "Remzi developed xv6 operating system" → Remzi RESEARCHES xv6, Remzi AUTHORED xv6
+- If "BERT uses transformer architecture" → BERT REQUIRES Transformer
+- If "Alice and Bob collaborated on distributed systems" → Alice COLLABORATES_WITH Bob, Alice RESEARCHES distributed systems
 
 Return ONLY valid JSON (no markdown):
 {
-  "entities": [{"name": "...", "type": "..."}],
-  "relationships": [{
-    "entity1": "...",
-    "entity2": "...",
-    "type": "...",
-    "confidence": 0.9,
-    "evidence": "quote",
-    "source": "paper title"
-  }]
-}`;
+  "entities": [
+    {"name": "entity name", "type": "entity_type"}
+  ],
+  "relationships": [
+    {
+      "entity1": "first entity name",
+      "entity2": "second entity name",
+      "type": "RELATIONSHIP_TYPE",
+      "confidence": 0.9,
+      "evidence": "direct quote from paper showing this relationship",
+      "source": "paper title"
+    }
+  ]
+}
+
+REMINDER: You MUST return MANY relationships (aim for 10-20+ total). Look for every co-occurrence of entities!`;
 
     try {
+      console.log('🤖 Sending to Claude API...');
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
@@ -453,23 +534,33 @@ Return ONLY valid JSON (no markdown):
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Claude API error:', response.status, errorText);
         throw new Error(`Claude API error: ${response.status}`);
       }
 
       const data = await response.json();
       let content = data.content[0].text;
 
+      console.log('📝 Claude response (first 500 chars):', content.substring(0, 500));
+
       // Strip markdown code blocks if present
       content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
 
       const extracted = JSON.parse(content);
+
+      console.log(`✅ Extracted ${extracted.entities?.length || 0} entities and ${extracted.relationships?.length || 0} relationships`);
+
+      if (extracted.relationships?.length === 0) {
+        console.warn('⚠️ WARNING: No relationships extracted! This will result in nodes with no edges.');
+      }
 
       return {
         entities: extracted.entities || [],
         relationships: extracted.relationships || []
       };
     } catch (error) {
-      console.error('Claude API error:', error);
+      console.error('❌ Claude API error:', error);
       throw error;
     }
   };
@@ -489,9 +580,23 @@ Return ONLY valid JSON (no markdown):
       // Convert to base64
       const base64 = await fileToBase64(file);
 
-      const prompt = `Extract from this ${domain.name} paper:
-1. ENTITIES: ${domain.entities.join(', ')}
-2. RELATIONSHIPS: ${domain.relationships.join(', ')}
+      const prompt = `Analyze this ${domain.name} research paper and extract entities AND relationships.
+
+STEP 1 - EXTRACT ENTITIES:
+Find all entities of these types: ${domain.entities.join(', ')}
+
+STEP 2 - FIND RELATIONSHIPS (CRITICAL):
+Look for entities that appear together in the paper and CREATE EDGES between them.
+
+RULES:
+1. When entities appear in same sections/paragraphs, they are likely related
+2. For authors/researchers + topics → researcher RESEARCHES topic
+3. For co-authors → COLLABORATES_WITH
+4. For methods/techniques + problems → SOLVES, APPLIES_TO
+5. Create AT LEAST 5-10 relationships
+6. Every entity should connect to at least 1-2 other entities
+
+RELATIONSHIP TYPES: ${domain.relationships.join(', ')}
 
 Return ONLY valid JSON (no markdown):
 {
@@ -501,10 +606,12 @@ Return ONLY valid JSON (no markdown):
     "entity2": "...",
     "type": "...",
     "confidence": 0.9,
-    "evidence": "quote",
+    "evidence": "quote from paper",
     "page": 1
   }]
-}`;
+}
+
+REMINDER: Return MANY relationships! Look for every co-occurrence.`;
 
       try {
         const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -546,13 +653,19 @@ Return ONLY valid JSON (no markdown):
         let content = data.content[0].text;
         content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
 
+        console.log(`📝 PDF ${file.name} - Claude response (first 500 chars):`, content.substring(0, 500));
+
         const extracted = JSON.parse(content);
+        console.log(`📄 PDF ${file.name} - Extracted ${extracted.entities?.length || 0} entities, ${extracted.relationships?.length || 0} relationships`);
+
         allEntities.push(...(extracted.entities || []));
         allRelationships.push(...(extracted.relationships || []));
       } catch (error) {
-        console.error(`Error processing ${file.name}:`, error);
+        console.error(`❌ Error processing ${file.name}:`, error);
       }
     }
+
+    console.log(`✅ Total from all PDFs: ${allEntities.length} entities, ${allRelationships.length} relationships`);
 
     return { entities: allEntities, relationships: allRelationships };
   };
@@ -702,6 +815,9 @@ Return ONLY valid JSON (no markdown):
   };
 
   const buildGraphFromExtraction = (extracted, papers) => {
+    console.log('🔨 Building graph from extraction...');
+    console.log('📊 Raw extraction data:', extracted);
+
     const domain = DOMAINS[selectedDomain];
 
     // Deduplicate entities
@@ -719,6 +835,7 @@ Return ONLY valid JSON (no markdown):
     }
 
     const nodes = Array.from(entityMap.values());
+    console.log(`📍 Created ${nodes.length} nodes:`, nodes.map(n => n.name));
 
     const links = extracted.relationships.map(rel => ({
       source: rel.entity1,
@@ -731,8 +848,17 @@ Return ONLY valid JSON (no markdown):
       label: `${rel.type} (${rel.confidence.toFixed(2)})`
     }));
 
+    console.log(`🔗 Created ${links.length} edges (links):`, links.map(l => `${l.source} → ${l.target}`));
+
+    if (links.length === 0) {
+      console.error('❌ WARNING: No edges created! Graph will show only disconnected nodes.');
+      console.error('🔍 Check if relationships were extracted from papers');
+    }
+
     setGraphData({ nodes, links });
     setCurrentPapers(papers);
+
+    console.log('✅ Graph data set:', { nodes: nodes.length, links: links.length });
   };
 
   const saveApiKey = (key, value) => {
@@ -933,6 +1059,26 @@ Return ONLY valid JSON (no markdown):
         {graphData.nodes.length > 0 && (
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">
             <h3 className="font-bold text-xl mb-4">🔗 Knowledge Graph</h3>
+
+            {/* Warning if no edges */}
+            {graphData.links.length === 0 && (
+              <div className="bg-orange-50 border-l-4 border-orange-500 p-4 mb-4">
+                <p className="font-semibold text-orange-900">⚠️ No relationships found!</p>
+                <p className="text-orange-700 text-sm">
+                  The graph shows {graphData.nodes.length} entities but no connections between them.
+                  Check the console for extraction details.
+                </p>
+              </div>
+            )}
+
+            {/* Success message */}
+            {graphData.links.length > 0 && (
+              <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-4">
+                <p className="font-semibold text-green-900">
+                  ✅ Graph complete: {graphData.nodes.length} entities, {graphData.links.length} relationships
+                </p>
+              </div>
+            )}
 
             {/* Legend */}
             <div className="mb-4 p-4 bg-gray-50 rounded-lg">

@@ -955,6 +955,31 @@ Return ONLY valid JSON (no markdown):
 
       {/* Main Content */}
       <div className="container mx-auto px-6 py-6">
+        {/* Hackathon Context Banner */}
+        <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg shadow-lg p-6 mb-6 text-white">
+          <h2 className="text-2xl font-bold mb-3">🏆 UW-Madison Claude Code Hackathon Project</h2>
+          <p className="text-purple-100 mb-4">
+            <strong>Problem Solved:</strong> Researchers waste hours manually reading papers to understand connections between concepts.
+            This tool uses Claude AI to automatically extract knowledge graphs from academic papers.
+          </p>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="bg-white/10 rounded-lg p-4 backdrop-blur">
+              <h3 className="font-bold text-lg mb-2">📄 MODE 1: Manual Upload (Tab 3)</h3>
+              <p className="text-sm text-purple-100">
+                Upload 1-3 specific PDFs you already have → Claude extracts entities & relationships →
+                Instant knowledge graph for your research project
+              </p>
+            </div>
+            <div className="bg-white/10 rounded-lg p-4 backdrop-blur">
+              <h3 className="font-bold text-lg mb-2">🤖 MODE 2: Agent Mode (Tab 2)</h3>
+              <p className="text-sm text-purple-100">
+                Enter research topic → Agent autonomously searches PubMed → Finds 5-10 UW papers →
+                Downloads & analyzes automatically → Large cross-paper knowledge graph
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Domain Selector */}
         <div className="bg-white rounded-lg shadow-md p-4 mb-6">
           <label className="font-semibold text-gray-700 mr-3">Research Domain:</label>
@@ -988,6 +1013,10 @@ Return ONLY valid JSON (no markdown):
         {/* Tab 2: Search Papers */}
         {activeTab === 'search' && (
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+            <div className="bg-blue-50 border-l-4 border-blue-500 p-3 mb-4">
+              <p className="font-semibold text-blue-900">🤖 MODE 2: AGENT MODE - Autonomous Research Discovery</p>
+              <p className="text-sm text-blue-700">The agent will search PubMed, download papers, and build a knowledge graph automatically!</p>
+            </div>
             <h3 className="font-bold text-xl mb-4">🔍 Search UW Madison Research Papers</h3>
             <div className="flex gap-3">
               <input
@@ -1016,6 +1045,10 @@ Return ONLY valid JSON (no markdown):
         {/* Tab 3: Upload Papers */}
         {activeTab === 'upload' && (
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+            <div className="bg-purple-50 border-l-4 border-purple-500 p-3 mb-4">
+              <p className="font-semibold text-purple-900">📄 MODE 1: MANUAL UPLOAD - Analyze Your Papers</p>
+              <p className="text-sm text-purple-700">Upload specific PDFs you already have for focused analysis</p>
+            </div>
             <h3 className="font-bold text-xl mb-4">📄 Upload Research Papers (PDF)</h3>
             <input
               type="file"
